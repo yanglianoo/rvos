@@ -1,6 +1,6 @@
 SECTIONS = \
-	./asm \
-	./os \
+	code/asm \
+	code/os \
 
 .DEFAULT_GOAL := all
 all :

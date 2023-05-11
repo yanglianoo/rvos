@@ -19,7 +19,8 @@ debug: all
 	@echo "-------------------------------------------------------"
 	@${QEMU} ${QFLAGS} -kernel ${EXEC}.elf -s -S &
 	@${GDB} ${EXEC}.elf -q -x ${GDBINIT}
-
+#  -x ${GDBINIT} gdb的配置脚本
+#  -q 启动时不显示版本信息、配置选项和欢迎消息等信息，直接进入 GDB 命令行界面
 
 # 反汇编输出汇编代码
 .PHONY : code
