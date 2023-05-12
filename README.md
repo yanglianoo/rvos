@@ -9,7 +9,9 @@
 
 - `asm`: 为`risc-v`的汇编练习代码 
 - `os` : 为`rvos`的代码
-# 调试记录
+
+## 调试记录
+
  - 当`make debug`时，如果`qemu`的`1234`端口被占用   
    `sudo lsof -i tcp:1234` 找出占用1234端口的进程   
    `sudo kill 1008828` 杀死相关进程即可
@@ -71,7 +73,47 @@ RISC-V 的 32 个通用寄存器都是用来存储整数值的，它们的编号
 - x18 到 x27 是保存寄存器（s2 到 s11），它们也用来保存函数调用前后不变的数据。这些寄存器也需要被调用者保存和恢复。
 - x28 到 x31 是临时寄存器（t3 到 t6），它们也用来保存临时数据或中间结果。这些寄存器也不需要被调用者或被调用者保存或恢复。
 
+| 寄存器名        | ABI 名 （编 程用名） | 用途约定                                                     | 谁负责在函数调用过 程中维护这些寄存器 |
+| --------------- | -------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| x0              | zero                 | 读取时总为 0， 写入时不起任何效果                            | N/A                                   |
+| x1              | ra                   | 存放函数返回地址（return address）                           | Caller                                |
+| x2              | sp                   | 存放栈指针（stack pointer）                                  | Callee                                |
+| x5~x7, x28~x31  | t0~t2, t3~t6         | **临时（temporaries） 寄存器**， Callee 可能会使用这些寄存器， 所以 Callee 不保证这些寄存器中的值在函数调用过程中保持不变， 这意味 着对于 Caller 来说， 如果需要的话， Caller 需要自己在调用 Callee 之 前保存临时寄存器中的值。 | Caller                                |
+| x8, x9, x18~x27 | s0, s1, s2~s11       | **保存（saved） 寄存器**， Callee 需要保证这些寄存器的值在函数返回 后仍然维持函数调用之前的原值， 所以一旦 Callee 在自己的函数中 会用到这些寄存器则需要在栈中备份并在退出函数时进行恢复。 | Callee                                |
+| x10 , x11       | a0 , a1              | **参数（argument） 寄存器**， 用于在函数调用过程中保存第一个和第 二个参数， 以及在函数返回时传递返回值。 | Caller                                |
+| x12 ~ x17       | a2 ~ a7              | **参数（argument） 寄存器**， 如果函数调用时需要传递更多的参数， 则可以用这些寄存器， 但注意用于传递参数的寄存器最多只有 8 个 （a0 ~ a7） ， 如果还有更多的参数则要利用栈。 | Caller                                |
 > (1) The RISC-V Architecture - DZone. https://dzone.com/articles/introduction-to-the-risc-v-architecture.
 > (2) Registers - RISC-V - WikiChip. https://en.wikichip.org/wiki/risc-v/registers.
 > (3) RISC-V - Wikipedia. https://en.wikipedia.org/wiki/RISC-V.
 > (4) Calling Convention - RISC-V. https://riscv.org/wp-content/uploads/2015/01/riscv-calling.pdf.
+
+### 函数跳转和返回的编程约定
+
+| 伪指令      | 等价指令                                                     | 描述                                                  | 例子     |
+| ----------- | ------------------------------------------------------------ | ----------------------------------------------------- | -------- |
+| jal offset  | jal x1, offset                                               | 跳转到 offset 制定位置， 返回地址 保存在 x1 (ra）     | jal foo  |
+| jalr rs     | jalr x1, 0(rs)                                               | 跳转到 rs 中值所指定的位置， 返 回地址保存在 x1 (ra） | jalr s1  |
+| j offset    | jal x0, offset                                               | 跳转到 offset 制定位置， 不保存返 回地址              | j loop   |
+| jr rs       | jalr x0, 0(rs)                                               | 跳转到 rs 中值所指定的位置， 不 保存返回地址          | jr s1    |
+| call offset | auipc x1, offset[31 : 12] + offset[11] jalr x1, offset[11:0](x1) | 长跳转调用函数                                        | call foo |
+| tail offset | auipc x6, offset[31 : 12] + offset[11] jalr x0, offset[11:0](x6) | 长跳转尾调用                                          | tail foo |
+| ret         | jalr x0, 0(x1)                                               | 从 Callee 返回                                        | ret      |
+
+
+
+### 函数调用过程实现调用函数的编程约定
+
+| 函数起始部分（Prologue）                                     |
+| ------------------------------------------------------------ |
+| 减少 `sp` 的值， 根据本函数中使用 `saved` 寄存器的情况以及 `local` 变量的多 少开辟栈空间。 |
+| 将 `saved` 寄存器的值保存到栈中                              |
+| 如果函数中还会调用其他的函数， 则将 `ra` 寄存器的值保存到栈中 |
+
+| 函数退出部分（Epilogue）                      |
+| --------------------------------------------- |
+| 从栈中恢复 `saved` 寄存器                     |
+| 如果需要的话， 从栈中恢复 `ra` 寄存器         |
+| 增加 `sp` 的值， 恢复到进入本函数之前的状态。 |
+| 调用` ret `返回                               |
+
+![image-20230512204426608](image/image-20230512204426608.png)
