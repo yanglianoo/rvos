@@ -3,12 +3,14 @@ include ../common.mk
 SRCS_ASM = \
 	start.S \
 	mem.S \
+	entry.S \
 
 SRCS_C = \
 	kernel.c \
 	uart.c \
 	printf.c \
 	page.c \
+	sched.c \
 
 # 将源文件替换为 .o 文件
 OBJS = $(SRCS_ASM:.S=.o)

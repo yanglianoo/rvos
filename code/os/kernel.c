@@ -1,14 +1,19 @@
 #include "os.h"
 
 extern void page_init();
-extern void page_test();
+extern void sched_init(void);
+extern void schedule(void);
 void start_kernel(void)
 {
 	uart_init();
 	uart_puts("hello RVOS !");
 
 	page_init();
-	page_test();
+
+	sched_init();
+
+	schedule();
+
 	while (1) {}; // stop here!
 }
 
