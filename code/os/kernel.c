@@ -11,6 +11,8 @@ void start_kernel(void)
 
 	page_init();
 
+	trap_init();
+	
 	sched_init();
 
 	os_main();
