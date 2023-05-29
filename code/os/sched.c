@@ -19,11 +19,6 @@ struct context ctx_tasks[MAX_TASKS];
 static int _top = 0;
 static int _current = -1;
 
-/* 将 x 的值写入 mscratch 寄存器*/
-static void w_mscratch(reg_t x)
-{
-	asm volatile("csrw mscratch, %0" : : "r" (x));
-}
 
 void user_task0(void);
 void sched_init()

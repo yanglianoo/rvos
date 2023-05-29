@@ -1,7 +1,7 @@
 #include "os.h"
 
 
-#define DELAY 1000
+#define DELAY 10000
 
 void user_task0(void)
 {
@@ -19,8 +19,6 @@ void user_task1(void)
 	uart_puts("Task 1: Created!\n");
 	while (1) {
 		uart_puts("Task 1: Running...\n");
-		
-		trap_test();
 		task_delay(DELAY);
 		task_yield();
 	}

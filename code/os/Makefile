@@ -13,6 +13,8 @@ SRCS_C = \
 	sched.c \
 	user.c \
 	trap.c \
+	plic.c \
+	timer.c \
 
 # 将源文件替换为 .o 文件
 OBJS = $(SRCS_ASM:.S=.o)

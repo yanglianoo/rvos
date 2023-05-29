@@ -11,7 +11,7 @@
 
 #include "types.h"
 
-/* 获取tp寄存器的值 */
+/* 获取 tp寄存器的值 */
 static inline reg_t r_tp()
 {
 	reg_t x;

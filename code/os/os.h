@@ -5,7 +5,7 @@
 
 #include "types.h"
 #include "platform.h"
-
+#include "riscv.h"
 /* uart */
 extern int uart_putc(char ch);
 extern void uart_puts(char *s);
