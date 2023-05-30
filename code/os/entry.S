@@ -80,32 +80,38 @@
 .text
 
 # interrupts and exceptions while in machine mode come here.
+# mepc 寄存器存储了中断函数的返回地址
+# mscratch 寄存器存储的是当前任务上下文的存储地址
+# t6 为下一个任务的上下文存储地址
 .globl trap_vector
 .align 4
 trap_vector:
 	# save context(registers).
-	csrrw	t6, mscratch, t6	# swap t6 and mscratch
-	reg_save t6
+	csrrw	t6, mscratch, t6	# 交换 t6 和 mscratch 的值，此时 mscratch = t6
+	reg_save t6					# 以 t6 寄存器中的值为基址，保存当前上下文寄存器的值
 
-	# Save the actual t6 register, which we swapped into
-	# mscratch
-	mv	t5, t6		# t5 points to the context of current task
-	csrr	t6, mscratch	# read t6 back from mscratch
-	sw	t6, 120(t5)	# save t6 with t5 as base
+	# Save the actual t6 register, which we swapped into mscratch
+	mv	t5, t6					# t5 指向当前任务的上下文  
+	csrr	t6, mscratch		# 从 mscratch 读取当前任务的上下文地址并赋值给 t6
+	sw	t6, 120(t5)				# 以 t5 为基地址将 t6 保存在偏移为 120 的位置，保存t6的值
 
-	# Restore the context pointer into mscratch
+	# save mepc to context of current task
+	csrr	a0, mepc			# 将 mepc 寄存器的值读入 a0 寄存器
+	sw	a0, 124(t5)				# 以 t5 为基地址将 a0 保存在偏移为 124 的位置，保存 mepc 的值
+
+	# 将 mscratch 重新指向当前任务上下文
 	csrw	mscratch, t5
 
-	# call the C trap handler in trap.c
-	csrr	a0, mepc
-	csrr	a1, mcause
-	call	trap_handler
+	# 调用中断处理函数
+	csrr	a0, mepc            # 将 mepc 寄存器的值读入 a0 寄存器
+	csrr	a1, mcause			# 将 mcause 寄存器的值读入 a1 寄存器
+	call	trap_handler		# 调用名为 trap_handler 的 C 中断/异常处理程序
 
 	# trap_handler will return the return address via a0.
-	csrw	mepc, a0
+	csrw	mepc, a0			# 将 a0 中存储的返回地址存储到 mepc 寄存器
 
 	# restore context(registers).
-	csrr	t6, mscratch
+	csrr	t6, mscratch        # 恢复当前任务的上下文
 	reg_restore t6
 
 	# return to whatever we were doing before trap.
@@ -113,33 +119,22 @@ trap_vector:
 
 # void switch_to(struct context *next);
 # a0: pointer to the context of the next task
+# 各个任务的上下文信息都保存在各自的栈中，存储地址通过参数传入，然后赋值给 mscratch
 .globl switch_to
 .align 4
 switch_to:
-	csrrw	t6, mscratch, t6	# swap t6 and mscratch
-	beqz	t6, 1f			# Note: the first time switch_to() is
-	                                # called, mscratch is initialized as zero
-					# (in sched_init()), which makes t6 zero,
-					# and that's the special case we have to
-					# handle with t6
-	reg_save t6			# save context of prev task
-
-	# Save the actual t6 register, which we swapped into
-	# mscratch
-	mv	t5, t6		# t5 points to the context of current task
-	csrr	t6, mscratch	# read t6 back from mscratch
-	sw	t6, 120(t5)	# save t6 with t5 as base
-
-1:
-	# switch mscratch to point to the context of the next task
+	# 切换 mscratch 寄存器的指针，使其指向下一个任务的上下文
 	csrw	mscratch, a0
+	# set mepc to the pc of the next task
+	lw	a1, 124(a0)
+	csrw	mepc, a1
 
-	# Restore all GP registers
-	# Use t6 to point to the context of the new task
-	mv	t6, a0
+	# 恢复所有通用目的寄存器（GP registers）的值
+	# 使用 t6 寄存器指向下一个任务的上下文
+	mv	t6, a0               
 	reg_restore t6
 
 	# Do actual context switching.
-	ret
-
+	# Notice this will enable global interrupt
+	mret
 .end

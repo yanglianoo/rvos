@@ -11,6 +11,7 @@
 extern void trap_vector(void);
 extern void uart_isr(void);
 extern void timer_handler(void);
+extern void schedule(void);
 
 void trap_init()
 {
@@ -20,7 +21,9 @@ void trap_init()
 	w_mtvec((reg_t)trap_vector);
 }
 
-
+/**
+ * @brief  外部中断函数
+ */
 void external_interrupt_handler()
 {
 	int irq = plic_claim();
@@ -36,6 +39,7 @@ void external_interrupt_handler()
 	}
 }
 
+// 在 trap_vector 函数中将 mepc 和 m_cause的值传了出来
 reg_t trap_handler(reg_t epc, reg_t cause)
 {
 	reg_t return_pc = epc;
@@ -48,6 +52,11 @@ reg_t trap_handler(reg_t epc, reg_t cause)
 		switch (cause_code) {
 		case 3:
 			uart_puts("software interruption!\n");
+
+			int id = r_mhartid();
+    		*(uint32_t*)CLINT_MSIP(id) = 0;
+			schedule();
+
 			break;
 		case 7:
 			uart_puts("timer interruption!\n");

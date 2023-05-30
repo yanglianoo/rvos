@@ -1,24 +1,27 @@
 #ifndef __OS_H__
 #define __OS_H__
+
+#include "types.h"
+#include "riscv.h"
+#include "platform.h"
+
 #include <stddef.h>
 #include <stdarg.h>
 
-#include "types.h"
-#include "platform.h"
-#include "riscv.h"
 /* uart */
 extern int uart_putc(char ch);
 extern void uart_puts(char *s);
+extern int uart_getc(void);
 
 /* printf */
 extern int  printf(const char* s, ...);
 extern void panic(char *s);
 
-/* memeory */
-extern void *page_alloc(int pages);
+/* memory management */
+extern void *page_alloc(int npages);
 extern void page_free(void *p);
 
-/* riscv 寄存器定义 */
+/* task management */
 struct context {
 	/* ignore x0 */
 	reg_t ra;
@@ -52,9 +55,19 @@ struct context {
 	reg_t t4;
 	reg_t t5;
 	reg_t t6;
+	// upon is trap frame
+
+	// save the pc to run in next schedule cycle
+	reg_t pc; // offset: 31 *4 = 124
 };
 
-extern int  task_create(void *(*task)(void));
+extern int  task_create(void (*task)(void));
 extern void task_delay(volatile int count);
 extern void task_yield();
-#endif
+
+/* plic */
+extern int plic_claim(void);
+extern void plic_complete(int irq);
+
+
+#endif /* __OS_H__ */

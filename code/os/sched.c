@@ -19,11 +19,12 @@ struct context ctx_tasks[MAX_TASKS];
 static int _top = 0;
 static int _current = -1;
 
-
-void user_task0(void);
 void sched_init()
 {
+	// 初始化 mscratch 的值为 0
 	w_mscratch(0);
+	/* 打开 machine-mode 下的软中断 */
+	w_mie(r_mie() | MIE_MSIE);
 }
 
 void schedule()
@@ -35,6 +36,7 @@ void schedule()
 	}
 	//任务轮转
 	_current = (_current + 1) % _top;
+	// next 代表下一个任务的寄存器上下文存储地址
 	struct context *next = &(ctx_tasks[_current]);
 	switch_to(next);
 
@@ -48,12 +50,12 @@ void schedule()
  * 	0: success
  * 	-1: if error occured
  */
-int task_create(void *(*task)(void))
+int task_create(void (*task)(void))
 {
 	if(_top < MAX_TASKS)
 	{
 		ctx_tasks[_top].sp = (reg_t) &task_stack[_top][STACK_SIZE-1];
-		ctx_tasks[_top].ra = (reg_t) task;
+		ctx_tasks[_top].pc = (reg_t) task;
 		_top ++;
 		return 0;
 	}
@@ -69,7 +71,10 @@ int task_create(void *(*task)(void))
  */
 void task_yield()
 {
-	schedule();
+	// 获取 hart id
+	int id = r_mhartid();
+	// 触发软中断
+	*(uint32_t*)CLINT_MSIP(id) = 1;
 }
 
 /*
@@ -80,4 +85,5 @@ void task_delay(volatile int count)
 	count *= 50000;
 	while (count--);
 }
+
 
