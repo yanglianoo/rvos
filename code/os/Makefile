@@ -15,6 +15,7 @@ SRCS_C = \
 	trap.c \
 	plic.c \
 	timer.c \
+	lock.c \
 
 # 将源文件替换为 .o 文件
 OBJS = $(SRCS_ASM:.S=.o)
