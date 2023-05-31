@@ -1,6 +1,6 @@
 /**
  * @File Name: trap.c
- * @brief  
+ * @brief  中断处理逻辑
  * @Author : Timer email:330070781@qq.com
  * @Version : 1.0
  * @Creat Date : 2023-05-28
@@ -12,6 +12,7 @@ extern void trap_vector(void);
 extern void uart_isr(void);
 extern void timer_handler(void);
 extern void schedule(void);
+extern void do_syscall(struct context *cxt);
 
 void trap_init()
 {
@@ -39,8 +40,8 @@ void external_interrupt_handler()
 	}
 }
 
-// 在 trap_vector 函数中将 mepc 和 m_cause的值传了出来
-reg_t trap_handler(reg_t epc, reg_t cause)
+// 在 trap_vector 函数中将 mepc 和 m_cause 以及上下文指针 cxt 的值传了出来
+reg_t trap_handler(reg_t epc, reg_t cause,struct context *cxt)
 {
 	reg_t return_pc = epc;
 	reg_t cause_code = cause & 0xfff;
@@ -75,8 +76,15 @@ reg_t trap_handler(reg_t epc, reg_t cause)
     {
 		/* Synchronous trap - exception */
 		printf("Sync exceptions!, code = %d\n", cause_code);
-		panic("OOPS! What can I do!");
-		//return_pc += 4;
+		switch (cause_code) {
+		case 8:
+			uart_puts("System call from U-mode!\n");
+			do_syscall(cxt);
+			return_pc += 4;
+			break;
+		default:
+			panic("OOPS! What can I do!");
+		}
 	}
 
 	return return_pc;

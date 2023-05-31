@@ -1,9 +1,17 @@
 include ../common.mk
 
+# 可以在编译命令中指定要定义的宏
+SYSCALL = y
+
+ifeq (${SYSCALL}, y)
+CFLAGS += -D CONFIG_SYSCALL
+endif
+
 SRCS_ASM = \
 	start.S \
 	mem.S \
 	entry.S \
+	usys.S  \
 
 SRCS_C = \
 	kernel.c \
@@ -16,6 +24,7 @@ SRCS_C = \
 	plic.c \
 	timer.c \
 	lock.c \
+	syscall.c \
 
 # 将源文件替换为 .o 文件
 OBJS = $(SRCS_ASM:.S=.o)

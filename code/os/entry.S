@@ -105,6 +105,7 @@ trap_vector:
 	# 调用中断处理函数
 	csrr	a0, mepc            # 将 mepc 寄存器的值读入 a0 寄存器
 	csrr	a1, mcause			# 将 mcause 寄存器的值读入 a1 寄存器
+	csrr	a2, mscratch		# 将 mscratch 寄存器的值读入 a2 寄存器
 	call	trap_handler		# 调用名为 trap_handler 的 C 中断/异常处理程序
 
 	# trap_handler will return the return address via a0.

@@ -1,6 +1,6 @@
 /**
  * @File Name: timer.c
- * @brief  : 硬件定时器，触发定时器中断
+ * @brief  : 定时器，包括硬件定时器和软件定时器
  * @Author : Timer email:330070781@qq.com
  * @Version : 1.0
  * @Creat Date : 2023-05-29
@@ -118,7 +118,7 @@ void timer_handler()
 	printf("tick: %d\n", _tick);
 
 	timer_check();
-	
+
 	timer_load(TIMER_INTERVAL);
 
 	schedule();
